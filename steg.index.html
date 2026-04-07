@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PixelSteg — LSB Steganography Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'SF Mono', 'Consolas', monospace;
+            background: #0a0c12;
+            color: #e3e6f0;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid #2a2f3f;
+            padding-bottom: 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #b3f0ff, #7c8eff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+        }
+
+        .header .badge {
+            display: inline-block;
+            margin-top: 0.75rem;
+            background: #1e2438;
+            padding: 0.25rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            border: 1px solid #3c4258;
+            color: #9aa4bf;
+        }
+
+        .sub {
+            text-align: center;
+            color: #8b93aa;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* tab bar */
+        .tab-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: #12141c;
+            border: 1px solid #2a2f3f;
+            color: #cbd5ff;
+            padding: 0.7rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 60px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .tab-btn.active {
+            background: #2b3b6e;
+            border-color: #5f7fbf;
+            color: white;
+            box-shadow: 0 0 8px rgba(79, 129, 255, 0.3);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #1b1f2c;
+            border-color: #4f5a7a;
+        }
+
+        /* panels */
+        .panel {
+            display: none;
+            animation: fade 0.25s ease;
+        }
+
+        .panel.active-panel {
+            display: block;
+        }
+
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(6px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        /* cards */
+        .card {
+            background: #0f111a;
+            border-radius: 32px;
+            padding: 1.8rem;
+            border: 1px solid #232838;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.5);
+            margin-bottom: 2rem;
+        }
+
+        .grid-2 {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .grid-2 > div {
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .dropzone {
+            border: 2px dashed #3e445e;
+            background: #080b12;
+            border-radius: 24px;
+            padding: 2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 1rem;
+        }
+
+        .dropzone:hover {
+            border-color: #5f7fbf;
+            background: #0e1220;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 280px;
+            border-radius: 20px;
+            margin-top: 1rem;
+            border: 1px solid #2d3348;
+            background: #010101;
+        }
+
+        textarea, input {
+            width: 100%;
+            background: #06080f;
+            border: 1px solid #2c3146;
+            color: #f0f3ff;
+            padding: 0.9rem;
+            border-radius: 20px;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #5f7fbf;
+        }
+
+        button {
+            background: #1f2a48;
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 0.8rem 1.8rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 1rem;
+            font-family: inherit;
+            border: 1px solid #3f4a70;
+        }
+
+        button.primary {
+            background: #2d4b8c;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+
+        button.primary:hover {
+            background: #3f62aa;
+            transform: scale(0.97);
+        }
+
+        .info-box {
+            background: #0b0e18;
+            border-left: 4px solid #4c7ad9;
+            padding: 1rem;
+            border-radius: 18px;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #b4bbdb;
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 0.7rem;
+            border-radius: 18px;
+            background: #10131f;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .status.error {
+            color: #ff9e8f;
+            background: #2e1a1f;
+            border-left: 3px solid #ff5e4a;
+        }
+
+        .status.success {
+            color: #a2f5c6;
+            background: #0f2a1e;
+            border-left: 3px solid #2bdd77;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #4f5679;
+            margin-top: 2.5rem;
+            border-top: 1px solid #1b1f2c;
+            padding-top: 1.5rem;
+        }
+
+        @media (max-width: 700px) {
+            .header h1 { font-size: 2rem; }
+            .card { padding: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>PixelSteg</h1>
+        <div class="badge">LSB · PNG only · OFFLINE</div>
+        <div class="sub">least significant bit steganography — hide text inside pixels</div>
+    </div>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="hide">🔒 HIDE MESSAGE</button>
+        <button class="tab-btn" data-tab="extract">🔓 EXTRACT MESSAGE</button>
+    </div>
+
+    <!-- PANEL: HIDE -->
+    <div id="hidePanel" class="panel active-panel">
+        <div class="card">
+            <h3>📸 1. Select PNG image</h3>
+            <div id="hideDropzone" class="dropzone">
+                📂 Drag & drop PNG here <br> or click to browse
+                <input type="file" id="hideFileInput" accept="image/png" style="display: none;">
+            </div>
+            <div id="hidePreviewArea"></div>
+
+            <h3 style="margin-top: 1.8rem;">✏️ 2. Message to hide (max 500 chars)</h3>
+            <textarea id="secretMsg" rows="4" maxlength="500" placeholder="Type your secret message..."></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span id="charCounter">0 / 500</span>
+                <button id="clearMsgBtn" style="background:#2c2f42; padding:0.3rem 1rem;">Clear</button>
+            </div>
+
+            <h3 style="margin-top: 1.8rem;">⚙️ 3. Encode & download</h3>
+            <button id="encodeBtn" class="primary">✨ Encode & Download PNG</button>
+            <div id="hideStatus" class="status"></div>
+            <div class="info-box">
+                ⚠️ LSB method modifies last 2 bits of RGB channels. Output is PNG. <br>
+                ✔️ Works only with PNG (lossless). The resulting image looks identical to original.
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL: EXTRACT -->
+    <div id="extractPanel" class="panel">
+        <div class="card">
+            <h3>🔎 1. Upload stego-image (PNG)</h3>
+            <div id="extractDropzone" class="dropzone">
+                📂 Drag & drop PNG <br> or click to browse
+                <input type="file" id="extractFileInput" accept="image/png" style="display: none;">
+            </div>
+            <div id="extractPreviewArea"></div>
+
+            <h3 style="margin-top: 1.8rem;">📄 2. Extracted message</h3>
+            <textarea id="extractedMsg" rows="6" readonly placeholder="Extracted text will appear here..." style="background:#090c14;"></textarea>
+            <button id="copyExtractBtn" style="background:#2f385a;">📋 Copy to clipboard</button>
+            <div id="extractStatus" class="status"></div>
+        </div>
+    </div>
+    <footer>
+        PixelSteg — information security tool | LSB steganography | all processing happens locally in your browser
+    </footer>
+</div>
+
+<script>
+    // ------------------- UTILITIES -------------------
+    // Max capacity per pixel: 3 channels (R,G,B) * 2 bits = 6 bits per pixel. 
+    // But we use 2 bits per channel (more robust). For simplicity & readability: 2 bits per channel.
+    // Message format: 4-byte header (length) + UTF-8 bytes.
+    // Capacity = (width*height*3*2)/8 bytes minus header 4 bytes.
+    // With 500 chars UTF-8 ~ max 1500 bytes. Safe for any image > 100x100.
+    
+    let currentHideImage = null;   // ImageData object
+    let currentHideImgBitmap = null;
+    let currentExtractImage = null;
+    
+    // Helper: load image as ImageData
+    function loadImageToImageData(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                let imageData = ctx.getImageData(0, 0, img.width, img.height);
+                resolve({ imageData, width: img.width, height: img.height, imgElement: img });
+                URL.revokeObjectURL(img.src);
+            };
+            img.onerror = () => reject(new Error("Invalid image"));
+            img.src = URL.createObjectURL(file);
+        });
+    }
+    
+    // encode text into ImageData (2 bits per channel)
+    function encodeTextInImageData(imageData, text) {
+        const encoder = new TextEncoder();
+        let bytes = encoder.encode(text);
+        if (bytes.length > 50000) throw new Error("Text too long"); // but frontend limit 500 chars ~1500b safe
+        
+        // prepare payload: 4 bytes (Uint32) length + bytes
+        const lengthBytes = new Uint8Array(4);
+        new DataView(lengthBytes.buffer).setUint32(0, bytes.length, false); // big-endian
+        const payload = new Uint8Array(4 + bytes.length);
+        payload.set(lengthBytes, 0);
+        payload.set(bytes, 4);
+        
+        const totalBitsNeeded = payload.length * 8; // each byte = 8 bits
+        const availablePixels = imageData.width * imageData.height;
+        const availableChannels = availablePixels * 3; // R,G,B
+        const availableBits = availableChannels * 2; // 2 bits per channel
+        
+        if (totalBitsNeeded > availableBits) {
+            throw new Error(`Not enough capacity: need ${Math.ceil(totalBitsNeeded/8)} bytes, max ~${Math.floor(availableBits/8)} bytes. Use larger image or shorter text.`);
+        }
+        
+        const data = imageData.data; // Uint8ClampedArray
+        let bitIndex = 0;
+        // iterate over each channel (R,G,B)
+        for (let i = 0; i < data.length && bitIndex < totalBitsNeeded; i++) {
+            if ((i+1) % 4 === 0) continue; // skip alpha channel
+            let byteVal = data[i];
+            // take next 2 bits from payload
+            let bytePos = Math.floor(bitIndex / 8);
+            let bitOffset = bitIndex % 8;
+            let currentByte = payload[bytePos];
+            let bits = (currentByte >> (6 - bitOffset)) & 0x03; // 2 bits (0-3)
+            // clear last 2 bits of byteVal and set
+            byteVal = (byteVal & 0xFC) | bits;
+            data[i] = byteVal;
+            bitIndex += 2;
+        }
+        return imageData;
+    }
+    
+    // decode text from ImageData
+    function decodeTextFromImageData(imageData) {
+        const data = imageData.data;
+        let extractedBits = [];
+        // extract 2 bits per color channel (skip alpha)
+        for (let i = 0; i < data.length; i++) {
+            if ((i+1) % 4 === 0) continue;
+            let byteVal = data[i];
+            let bits = byteVal & 0x03; // last 2 bits
+            extractedBits.push(bits);
+        }
+        // convert bits array to bytes
+        let totalBits = extractedBits.length;
+        let bytesArray = [];
+        for (let i = 0; i+1 < totalBits; i+=4) {
+            let b = (extractedBits[i] << 6) | (extractedBits[i+1] << 4) | (extractedBits[i+2] << 2) | extractedBits[i+3];
+            bytesArray.push(b);
+        }
+        let byteBuffer = new Uint8Array(bytesArray);
+        if (byteBuffer.length < 4) return "";
+        const msgLength = (byteBuffer[0] << 24) | (byteBuffer[1] << 16) | (byteBuffer[2] << 8) | byteBuffer[3];
+        if (msgLength > 50000 || msgLength < 0 || msgLength > byteBuffer.length - 4) return "";
+        const textBytes = byteBuffer.slice(4, 4 + msgLength);
+        const decoder = new TextDecoder();
+        return decoder.decode(textBytes);
+    }
+    
+    // display preview
+    function showPreview(containerId, imgElement, width, height) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgElement, 0, 0);
+        const imgPreview = document.createElement('img');
+        imgPreview.src = canvas.toDataURL();
+        imgPreview.className = 'preview-img';
+        imgPreview.alt = 'preview';
+        container.appendChild(imgPreview);
+        const info = document.createElement('div');
+        info.style.marginTop = '0.5rem';
+        info.style.fontSize = '0.8rem';
+        info.innerText = `${width}×${width?height:0} px · ${(width*height*3*2/8).toFixed(0)} bytes max capacity`;
+        container.appendChild(info);
+    }
+    
+    // ---------- HIDE TAB LOGIC ----------
+    const hideDrop = document.getElementById('hideDropzone');
+    const hideInput = document.getElementById('hideFileInput');
+    const secretMsgText = document.getElementById('secretMsg');
+    const charCounter = document.getElementById('charCounter');
+    const encodeBtn = document.getElementById('encodeBtn');
+    const hideStatus = document.getElementById('hideStatus');
+    const clearMsgBtn = document.getElementById('clearMsgBtn');
+    
+    secretMsgText.addEventListener('input', () => {
+        charCounter.innerText = `${secretMsgText.value.length} / 500`;
+        if(secretMsgText.value.length > 500) secretMsgText.value = secretMsgText.value.substr(0,500);
+    });
+    clearMsgBtn.addEventListener('click', () => { secretMsgText.value = ''; charCounter.innerText = '0 / 500'; });
+    
+    function handleHideFile(file) {
+        if (!file || !file.type.includes('png')) {
+            hideStatus.innerText = '❌ Only PNG files allowed.';
+            hideStatus.className = 'status error';
+            return;
+        }
+        loadImageToImageData(file).then(({ imageData, width, height, imgElement }) => {
+            currentHideImage = imageData;
+            currentHideImgBitmap = imgElement;
+            showPreview('hidePreviewArea', imgElement, width, height);
+            hideStatus.innerText = `✅ Loaded: ${width}×${height}, ready to encode.`;
+            hideStatus.className = 'status success';
+        }).catch(err => {
+            hideStatus.innerText = `⚠️ Error: ${err.message}`;
+            hideStatus.className = 'status error';
+        });
+    }
+    
+    hideDrop.addEventListener('click', () => hideInput.click());
+    hideInput.addEventListener('change', (e) => { if(e.target.files[0]) handleHideFile(e.target.files[0]); });
+    hideDrop.addEventListener('dragover', (e) => { e.preventDefault(); hideDrop.style.borderColor = '#7c8eff'; });
+    hideDrop.addEventListener('dragleave', () => { hideDrop.style.borderColor = '#3e445e'; });
+    hideDrop.addEventListener('drop', (e) => {
+        e.preventDefault();
+        hideDrop.style.borderColor = '#3e445e';
+        const file = e.dataTransfer.files[0];
+        if(file) handleHideFile(file);
+    });
+    
+    encodeBtn.addEventListener('click', () => {
+        if (!currentHideImage) {
+            hideStatus.innerText = '⚠️ No PNG image loaded.';
+            hideStatus.className = 'status error';
+            return;
+        }
+        let msg = secretMsgText.value;
+        if (msg.length === 0) {
+            hideStatus.innerText = '⚠️ Enter a message to hide.';
+            hideStatus.className = 'status error';
+            return;
+        }
+        if (msg.length > 500) msg = msg.substr(0,500);
+        try {
+            const encodedImageData = encodeTextInImageData(currentHideImage, msg);
+            // create canvas and download
+            const canvas = document.createElement('canvas');
+            canvas.width = currentHideImage.width;
+            canvas.height = currentHideImage.height;
+            const ctx = canvas.getContext('2d');
+            ctx.putImageData(encodedImageData, 0, 0);
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'stego_pixelsteg.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                hideStatus.innerText = `✅ Encoded successfully! Downloaded stego-image. Message length: ${msg.length} chars.`;
+                hideStatus.className = 'status success';
+            }, 'image/png');
+        } catch (err) {
+            hideStatus.innerText = `❌ Encoding failed: ${err.message}`;
+            hideStatus.className = 'status error';
+        }
+    });
+    
+    // ---------- EXTRACT TAB LOGIC ----------
+    let currentExtractImgElement = null;
+    let currentExtractImageData = null;
+    const extractDrop = document.getElementById('extractDropzone');
+    const extractInput = document.getElementById('extractFileInput');
+    const extractedMsgArea = document.getElementById('extractedMsg');
+    const copyExtractBtn = document.getElementById('copyExtractBtn');
+    const extractStatus = document.getElementById('extractStatus');
+    
+    function handleExtractFile(file) {
+        if (!file || !file.type.includes('png')) {
+            extractStatus.innerText = '❌ Only PNG file required for extraction.';
+            extractStatus.className = 'status error';
+            return;
+        }
+        loadImageToImageData(file).then(({ imageData, width, height, imgElement }) => {
+            currentExtractImageData = imageData;
+            currentExtractImgElement = imgElement;
+            showPreview('extractPreviewArea', imgElement, width, height);
+            const decoded = decodeTextFromImageData(imageData);
+            if (decoded && decoded.length > 0) {
+                extractedMsgArea.value = decoded;
+                extractStatus.innerText = `✅ Extracted ${decoded.length} characters.`;
+                extractStatus.className = 'status success';
+            } else {
+                extractedMsgArea.value = '(no hidden message detected or corrupted)';
+                extractStatus.innerText = `⚠️ No valid LSB message found.`;
+                extractStatus.className = 'status error';
+            }
+        }).catch(err => {
+            extractStatus.innerText = `⚠️ Load error: ${err.message}`;
+            extractStatus.className = 'status error';
+        });
+    }
+    
+    extractDrop.addEventListener('click', () => extractInput.click());
+    extractInput.addEventListener('change', (e) => { if(e.target.files[0]) handleExtractFile(e.target.files[0]); });
+    extractDrop.addEventListener('dragover', (e) => { e.preventDefault(); extractDrop.style.borderColor = '#7c8eff'; });
+    extractDrop.addEventListener('dragleave', () => { extractDrop.style.borderColor = '#3e445e'; });
+    extractDrop.addEventListener('drop', (e) => {
+        e.preventDefault();
+        extractDrop.style.borderColor = '#3e445e';
+        const file = e.dataTransfer.files[0];
+        if(file) handleExtractFile(file);
+    });
+    
+    copyExtractBtn.addEventListener('click', () => {
+        if(extractedMsgArea.value) {
+            navigator.clipboard.writeText(extractedMsgArea.value);
+            extractStatus.innerText = '📋 Message copied to clipboard.';
+            extractStatus.className = 'status success';
+            setTimeout(() => { if(extractStatus.innerText.includes('copied')) extractStatus.innerText = ''; }, 2000);
+        } else {
+            extractStatus.innerText = 'Nothing to copy.';
+            extractStatus.className = 'status error';
+        }
+    });
+    
+    // ---------- TAB SWITCHING ----------
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const hidePanel = document.getElementById('hidePanel');
+    const extractPanel = document.getElementById('extractPanel');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (tabId === 'hide') {
+                hidePanel.classList.add('active-panel');
+                extractPanel.classList.remove('active-panel');
+            } else {
+                extractPanel.classList.add('active-panel');
+                hidePanel.classList.remove('active-panel');
+            }
+        });
+    });
+    
+    // init counters
+    charCounter.innerText = '0 / 500';
+</script>
+</body>
+</html>
